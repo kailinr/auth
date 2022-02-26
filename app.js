@@ -4,7 +4,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const md5 = require('md5');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 
 const app = express();
@@ -37,42 +38,55 @@ app.get("/login", function(req, res){
   res.render("login");
 });
 
-
 app.get("/register", function(req, res){
   res.render("register");
 });
 
+
 app.post("/register", function(req, res){
-    const newUser = new User({
-      email: req.body.username,
-      password: md5(req.body.password),
+
+  const passwordInput = req.body.password;
+
+    bcrypt.hash(passwordInput, saltRounds, function(err, hash) {
+
+      const newUser = new User({
+        email: req.body.username,
+        password: hash
+      });
+  
+      newUser.save(function(err){
+          if (err){
+            console.log(err);
+          } else {
+            res.render("secrets")
+          }
+      });
+
     });
 
-    newUser.save(function(err){
-        if (err){
-          console.log(err);
-        } else {
-          res.render("secrets")
-        }
-    });
+  
 
 });
 
+//: https://www.udemy.com/course/the-complete-web-development-bootcamp/learn/lecture/13559466#notes
 app.post("/login", function(req, res){
+
+  const password = req.body.password;
   const username = req.body.username;
-  const password = md5(req.body.password);     
-              //db email: form input username
-  User.findOne({email: username}, function(err, foundUser) {
-    if (err) {
-        console.log(err);
-      } else {
-        if(foundUser) {
-          if (foundUser.password === password) {
-            res.render("secrets")
-          }
-        }
-      }
-    });
+                  //db email: form input username
+        User.findOne({email: username}, function(err, foundUser) {
+          if (err) {
+              console.log(err);
+              } else {
+                if(foundUser) {              
+                      bcrypt.compare(password, foundUser.password, function(err, result) {
+                          if (result === true) {
+                            res.render("secrets")
+                          } 
+                    });
+                 }
+            }
+         });
 });
 
 app.get("/logout", function(req, res){
@@ -87,4 +101,4 @@ app.get("/home", function(req,res){
 
 app.listen(5500, function(){
   console.log("Server started on port 5500");
-})
+});
