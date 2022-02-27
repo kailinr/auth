@@ -1,11 +1,12 @@
 //jshint esversion:6
-require('dotenv').config() 
+const dotenv = require('dotenv').config()
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const bcrypt = require('bcrypt');
-const saltRounds = 10;
+const session = require('express-session')
+const passport = require("passport");
+const passportLocalMongoose = require("passport-local-Mongoose");
 
 
 const app = express();
@@ -16,7 +17,22 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 
-//---------------------Mongo Initialization --*
+const secret = process.env.PASSPORT;
+
+
+//--------------------- Passport Session INIT -----------*
+app.use(session({
+  secret: process.env.PASSPORT,
+  resave: false,
+  saveUninitialized: false,
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+//----------------- END Passport Session INIT -----------*
+
+
+//---------------------Mongoose Schema INIT --*
 mongoose.connect(process.env.DB, {useNewURLParser: true})
 
 const userSchema = new mongoose.Schema ({
@@ -24,75 +40,46 @@ const userSchema = new mongoose.Schema ({
   password: String,
 });
 
-const secret = process.env.SECRET;
+userSchema.plugin(passportLocalMongoose); //init passport mongoose, salt & hash passpwrds
 
 const User = new mongoose.model("User", userSchema); //User = collection
-//----------------------------------End Mongo Initialization --*
+
+//from local-mongoose
+passport.use(User.createStrategy());
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+//----------------------- END Mongo INIT ------------*
 
 app.get("/", function(req, res){
   res.render("home");
 });
 
-
 app.get("/login", function(req, res){
   res.render("login");
-});
-
-app.get("/register", function(req, res){
-  res.render("register");
-});
-
-
-app.post("/register", function(req, res){
-
-  const passwordInput = req.body.password;
-
-    bcrypt.hash(passwordInput, saltRounds, function(err, hash) { //https://www.npmjs.com/package/bcrypt
-
-      const newUser = new User({
-        email: req.body.username,
-        password: hash
-      });
-  
-      newUser.save(function(err){
-          if (err){
-            console.log(err);
-          } else {
-            res.render("secrets")
-          }
-      });
-    });
-});
-
-//: https://www.udemy.com/course/the-complete-web-development-bootcamp/learn/lecture/13559466#notes
-app.post("/login", function(req, res){
-//Form Input:
-  const passwordInput = req.body.password;
-  const username = req.body.username;
-                  //db email: form input username
-        User.findOne({email: username}, function(err, foundUser) {
-          if (err) {
-              console.log(err);
-              } else {
-                if(foundUser) {              
-                    bcrypt.compare(passwordInput, foundUser.password, function(err, result) {
-                      if (result === true) {
-                          res.render("secrets")
-                          } 
-                    });
-                 }
-              }
-        });
 });
 
 app.get("/logout", function(req, res){
   res.render("home")
 });
 
+app.get("/register", function(req, res){
+  res.render("register");
+});
 
 app.get("/home", function(req,res){
   res.render('home')
 });
+
+app.post("/register", function(req, res){
+
+});
+
+
+app.post("/login", function(req, res){
+
+});
+
 
 
 app.listen(5500, function(){
