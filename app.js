@@ -47,7 +47,7 @@ app.post("/register", function(req, res){
 
   const passwordInput = req.body.password;
 
-    bcrypt.hash(passwordInput, saltRounds, function(err, hash) {
+    bcrypt.hash(passwordInput, saltRounds, function(err, hash) { //https://www.npmjs.com/package/bcrypt
 
       const newUser = new User({
         email: req.body.username,
@@ -61,17 +61,13 @@ app.post("/register", function(req, res){
             res.render("secrets")
           }
       });
-
     });
-
-  
-
 });
 
 //: https://www.udemy.com/course/the-complete-web-development-bootcamp/learn/lecture/13559466#notes
 app.post("/login", function(req, res){
-
-  const password = req.body.password;
+//Form Input:
+  const passwordInput = req.body.password;
   const username = req.body.username;
                   //db email: form input username
         User.findOne({email: username}, function(err, foundUser) {
@@ -79,14 +75,14 @@ app.post("/login", function(req, res){
               console.log(err);
               } else {
                 if(foundUser) {              
-                      bcrypt.compare(password, foundUser.password, function(err, result) {
-                          if (result === true) {
-                            res.render("secrets")
+                    bcrypt.compare(passwordInput, foundUser.password, function(err, result) {
+                      if (result === true) {
+                          res.render("secrets")
                           } 
                     });
                  }
-            }
-         });
+              }
+        });
 });
 
 app.get("/logout", function(req, res){
